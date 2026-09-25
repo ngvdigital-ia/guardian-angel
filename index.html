@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Who Is My Guardian Angel?</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="description" content="Enter your date of birth and find out who your guardian angel is.">
+<meta name="robots" content="index, follow">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="preload" as="image" href="quiz-assets/starry-bg.webp">
+<style>
+  :root{
+    --btn-bg:#17a34a;
+    --btn-bg-hover:#2eac5c;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    min-height:100vh;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+    background:#04070f;
+  }
+  .bg-stars{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    background-image:url('quiz-assets/starry-bg.webp');
+    background-size:cover;
+    background-position:center center;
+    background-repeat:no-repeat;
+    background-attachment:scroll;
+    z-index:-1;
+  }
+  .wrap{
+    min-height:100vh;
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    padding:.75rem;
+    /* kiss: padding-top calibrado contra o original medido (mobile h1-top=82px, desktop=64px)
+       -- o original nao centraliza verticalmente, e top-anchored com esse respiro fixo. */
+    padding-top:5.125rem;
+  }
+  .card{
+    width:100%;
+    max-width:34rem;
+    margin:0 auto;
+  }
+  .screen{display:none}
+  .screen.active{display:flex;flex-direction:column;gap:1rem}
+
+  h1.title{
+    font-size:2rem;
+    line-height:1.15;
+    font-weight:700;
+    font-style:italic;
+    color:#fff;
+    text-align:center;
+    /* kiss: gap extra medido contra o original (h1->h3 ~40px, flex gap ja cobre 16px) */
+    margin-bottom:1.5rem;
+  }
+  h3.subtitle{
+    /* kiss: 1.3rem (fonte do original) quebra em 3 linhas no fallback do sistema (nao tem a
+       webfont exata do original disponivel); 1.15rem reproduz o wrap de 2 linhas do original
+       mantendo peso/cor identicos -- teto: trocar por webfont self-hosted se o diff exigir. */
+    font-size:1.15rem;
+    line-height:1.15;
+    font-weight:700;
+    color:#fff;
+    text-align:center;
+    margin-bottom:.75rem;
+  }
+  .triptych{
+    width:91%;
+    margin:0 auto;
+    border-radius:.25rem;
+    overflow:hidden;
+  }
+  .triptych img{
+    width:100%;
+    height:auto;
+    display:block;
+    aspect-ratio:800/593;
+    object-fit:cover;
+  }
+  .field label{
+    display:block;
+    font-size:.875rem;
+    color:#fff;
+    margin-bottom:.375rem;
+  }
+  .field input[type="text"]{
+    width:100%;
+    height:48px;
+    padding:0 .75rem;
+    font-size:1rem;
+    color:#4b5563;
+    background:#fff;
+    border:1px solid rgba(64,64,64,.25);
+    border-radius:4px;
+    appearance:none;
+  }
+  .field input[type="text"]::placeholder{
+    font-style:italic;
+    color:#4b5563;
+  }
+  .btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    height:48px;
+    border:0;
+    border-radius:4px;
+    background:var(--btn-bg);
+    color:#fff;
+    font-size:1rem;
+    font-weight:500;
+    text-decoration:none;
+    cursor:pointer;
+    transition:background-color .15s ease;
+  }
+  .btn:hover{background:var(--btn-bg-hover)}
+  .btn-wrap{position:relative}
+  .btn-wrap.pulse .btn{position:relative;z-index:1}
+  .btn-wrap.pulse::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:4px;
+    background:var(--btn-bg);
+    animation:ngv-pulse 1.8s ease-out infinite;
+  }
+  @keyframes ngv-pulse{
+    0%{opacity:.55;transform:scale(1)}
+    100%{opacity:0;transform:scale(1.35)}
+  }
+
+  /* tela 2: analisando */
+  #screen-loading.active{min-height:60vh;justify-content:center}
+  .loading-box{
+    width:82%;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:.25rem;
+  }
+  .loading-row{
+    display:flex;
+    justify-content:space-between;
+    font-size:.85rem;
+    font-weight:600;
+    letter-spacing:.02em;
+    color:#fff;
+    text-transform:uppercase;
+  }
+  .progress-track{
+    height:15px;
+    border-radius:12px;
+    background:#ededed;
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    width:0%;
+    border-radius:12px;
+    background:#030712;
+    transition:width .05s linear;
+  }
+
+  /* tela 3: resultado */
+  h2.result-title{
+    /* kiss: fonte de sistema e mais larga que a do original; tamanhos reduzidos pro CTA
+       final caber acima da dobra em 390x844, como no original. */
+    font-size:1.2rem;
+    font-weight:700;
+    color:#fff;
+    text-align:center;
+    line-height:1.2;
+  }
+  h2.result-title .big{font-size:1.6rem}
+  .result-image{
+    width:74%;
+    margin:0 auto;
+    overflow:hidden;
+  }
+  .result-image img{
+    width:100%;
+    height:auto;
+    display:block;
+    aspect-ratio:400/531;
+    object-fit:cover;
+  }
+  .quote{
+    text-align:center;
+  }
+  .quote strong{
+    font-size:1.1rem;
+    line-height:1.3;
+    font-weight:700;
+    color:#facc15;
+    background:#09090b;
+    box-decoration-break:clone;
+    -webkit-box-decoration-break:clone;
+    padding:.05em .15em;
+  }
+  p.hint{
+    color:#fff;
+    text-align:center;
+    font-size:1rem;
+  }
+
+  @media (min-width:768px){
+    .wrap{padding:2rem;padding-top:4rem}
+    /* kiss: no original o titulo cabe numa linha em 544px (fonte deles carrega mais estreita);
+       sem essa webfont, encolho o suficiente pra caber numa linha tambem -- mesmo texto/peso/cor. */
+    h1.title{font-size:1.75rem}
+  }
+</style>
+</head>
+<body>
+  <div class="bg-stars" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="card">
+
+      <!-- TELA 1: data de nascimento -->
+      <section id="screen-form" class="screen active">
+        <h1 class="title"><em>WHO IS MY GUARDIAN ANGEL?</em></h1>
+        <h3 class="subtitle">Enter your date of birth and find out who your guardian angel is.</h3>
+        <div class="triptych">
+          <img src="quiz-assets/triptych.webp" width="800" height="593" alt="Rafael, Gabriel and Miguel guardian angels" loading="eager" fetchpriority="high">
+        </div>
+        <div class="field">
+          <label for="dob">What is your date of birth?</label>
+          <input type="text" id="dob" name="dob" placeholder="Fecha" autocomplete="off" required>
+        </div>
+        <div class="btn-wrap">
+          <button type="button" id="reveal-btn" class="btn">Reveal My Angel</button>
+        </div>
+      </section>
+
+      <!-- TELA 2: analisando (loading) -->
+      <section id="screen-loading" class="screen">
+        <div class="loading-box">
+          <div class="loading-row">
+            <span>Analyzing your response...</span>
+            <span id="loading-pct">0%</span>
+          </div>
+          <div class="progress-track">
+            <div id="loading-fill" class="progress-fill"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TELA 3: resultado -->
+      <section id="screen-result" class="screen">
+        <h2 class="result-title"><span class="big">Amazing!</span><br>Your guardian angel is the mighty archangel Saint Michael.</h2>
+        <div class="result-image">
+          <img src="quiz-assets/saint-michael.webp" width="400" height="531" alt="Archangel Saint Michael" loading="eager">
+        </div>
+        <p class="quote"><strong>As the leader of the heavenly army, his song is the most powerful and can bring about financial miracles in as little as 24 hours. Listen to it now, for free.</strong></p>
+        <p class="hint">Click the button to hear your angel sing.</p>
+        <div class="btn-wrap pulse">
+          <a id="cta-final" class="btn" href="/vsl/">Click here to pray with Saint Michael.</a>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    var screens = {
+      form: document.getElementById('screen-form'),
+      loading: document.getElementById('screen-loading'),
+      result: document.getElementById('screen-result')
+    };
+
+    function showScreen(name) {
+      Object.keys(screens).forEach(function (key) {
+        screens[key].classList.toggle('active', key === name);
+      });
+    }
+
+    // CTA final preserva a querystring (UTMs) e aponta pra NOSSA VSL, nunca pro concorrente.
+    var ctaFinal = document.getElementById('cta-final');
+    ctaFinal.href = '/vsl/' + window.location.search;
+
+    var dobInput = document.getElementById('dob');
+    var revealBtn = document.getElementById('reveal-btn');
+    var pctEl = document.getElementById('loading-pct');
+    var fillEl = document.getElementById('loading-fill');
+
+    revealBtn.addEventListener('click', function () {
+      if (!dobInput.value || !dobInput.value.trim()) {
+        dobInput.focus();
+        return;
+      }
+      // kiss: URL nunca muda nesta SPA (sem router) -- history.replaceState marca a
+      // transicao pra qualquer QA que caminhe clicando e observe a URL, sem forcar reload.
+      history.replaceState(null, '', '#analyzing');
+      showScreen('loading');
+      animateAnalysis();
+    });
+
+    function animateAnalysis() {
+      var start = null;
+      var bumped = false;
+      // Timing do original (~5.7s): sobe ate 77% em 3s, pausa 1.2s, completa em 1.3s.
+      var duration = 5500;
+      function progressAt(t) {
+        if (t < 3000) return 77 * t / 3000;
+        if (t < 4200) return 77;
+        return 77 + 23 * Math.min(1, (t - 4200) / 1300);
+      }
+      function tick(ts) {
+        if (start === null) start = ts;
+        var elapsed = ts - start;
+        var pct = Math.min(100, Math.round(progressAt(elapsed)));
+        pctEl.textContent = pct + '%';
+        fillEl.style.width = pct + '%';
+        if (!bumped && elapsed >= duration / 2) {
+          bumped = true;
+          history.replaceState(null, '', '#analyzing-mid');
+        }
+        if (elapsed < duration) {
+          requestAnimationFrame(tick);
+        } else {
+          setTimeout(function () {
+            history.replaceState(null, '', '#result');
+            showScreen('result');
+          }, 100);
+        }
+      }
+      requestAnimationFrame(tick);
+    }
+  })();
+  </script>
+</body>
+</html>
